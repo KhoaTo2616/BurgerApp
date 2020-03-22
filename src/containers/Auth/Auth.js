@@ -1,12 +1,12 @@
 import React, { Component } from "react";
+import { connect } from "react-redux";
+import { Redirect } from "react-router-dom";
 
 import Input from "../../components/UI/Input/Input";
 import Button from "../../components/UI/Button/Button";
-import classes from "./Auth.css";
-import * as actionTypes from "../../store/actions/index";
-import { connect } from "react-redux";
 import Spinner from "../../components/UI/Spinner/Spinner";
-import { Redirect } from "react-router-dom";
+import classes from "./Auth.css";
+import * as actions from "../../store/actions/index";
 
 class Auth extends Component {
   state = {
@@ -15,7 +15,7 @@ class Auth extends Component {
         elementType: "input",
         elementConfig: {
           type: "email",
-          placeholder: "Your Email Address"
+          placeholder: "Mail Address"
         },
         value: "",
         validation: {
@@ -29,7 +29,7 @@ class Auth extends Component {
         elementType: "input",
         elementConfig: {
           type: "password",
-          placeholder: "Your Password"
+          placeholder: "Password"
         },
         value: "",
         validation: {
@@ -43,9 +43,14 @@ class Auth extends Component {
     isSignup: true
   };
 
+  componentDidMount() {
+    if (!this.props.buildingBurger && this.props.authRedirectPath !== "/") {
+      this.props.onSetAuthRedirectPath();
+    }
+  }
+
   checkValidity(value, rules) {
     let isValid = true;
-
     if (!rules) {
       return true;
     }
@@ -63,7 +68,12 @@ class Auth extends Component {
     }
 
     if (rules.isEmail) {
-      const pattern = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/;
+      const pattern = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
+      isValid = pattern.test(value) && isValid;
+    }
+
+    if (rules.isNumeric) {
+      const pattern = /^\d+$/;
       isValid = pattern.test(value) && isValid;
     }
 
@@ -86,7 +96,7 @@ class Auth extends Component {
     this.setState({ controls: updatedControls });
   };
 
-  submitHanlder = event => {
+  submitHandler = event => {
     event.preventDefault();
     this.props.onAuth(
       this.state.controls.email.value,
@@ -101,29 +111,22 @@ class Auth extends Component {
     });
   };
 
-  componentDidMount() {
-    if (!this.props.buildingBurger && this.props.authRedirectPath !== "/") {
-      this.props.onSetAuthRedirectPath();
-    }
-  }
-
   render() {
-    const formElementArr = [];
+    const formElementsArray = [];
     for (let key in this.state.controls) {
-      formElementArr.push({
+      formElementsArray.push({
         id: key,
         config: this.state.controls[key]
       });
     }
 
-    let form = formElementArr.map(formElement => (
+    let form = formElementsArray.map(formElement => (
       <Input
         key={formElement.id}
         elementType={formElement.config.elementType}
         elementConfig={formElement.config.elementConfig}
         value={formElement.config.value}
         invalid={!formElement.config.valid}
-        valueType={formElement.id}
         shouldValidate={formElement.config.validation}
         touched={formElement.config.touched}
         changed={event => this.inputChangedHandler(event, formElement.id)}
@@ -135,6 +138,7 @@ class Auth extends Component {
     }
 
     let errorMessage = null;
+
     if (this.props.error) {
       errorMessage = <p>{this.props.error.message}</p>;
     }
@@ -148,11 +152,11 @@ class Auth extends Component {
       <div className={classes.Auth}>
         {authRedirect}
         {errorMessage}
-        <form onSubmit={this.submitHanlder}>
+        <form onSubmit={this.submitHandler}>
           {form}
           <Button btnType="Success">SUBMIT</Button>
         </form>
-        <Button btnType="Danger" clicked={this.switchAuthModeHandler}>
+        <Button clicked={this.switchAuthModeHandler} btnType="Danger">
           SWITCH TO {this.state.isSignup ? "SIGNIN" : "SIGNUP"}
         </Button>
       </div>
@@ -173,8 +177,8 @@ const mapStateToProps = state => {
 const mapDispatchToProps = dispatch => {
   return {
     onAuth: (email, password, isSignup) =>
-      dispatch(actionTypes.auth(email, password, isSignup)),
-    onSetAuthRedirectPath: () => dispatch(actionTypes.setAuthRedirectPath("/"))
+      dispatch(actions.auth(email, password, isSignup)),
+    onSetAuthRedirectPath: () => dispatch(actions.setAuthRedirectPath("/"))
   };
 };
 
